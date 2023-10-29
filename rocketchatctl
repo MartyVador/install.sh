@@ -901,12 +901,12 @@ do_update() {
     run systemctl start rocketchat
     rocketchat_health_check
     if [ $rocket_healthy -eq 1 ]; then
-      run rm -rf $ROCKETCHAT_DIR_UPDATE
+      rm -rf $ROCKETCHAT_DIR_UPDATE
       echo "RocketChat server updated to latest version :)"
       exit 0
     else
-      run rm -rf $ROCKETCHAT_DIR && mv $ROCKETCHAT_DIR_UPDATE $ROCKETCHAT_DIR
-      run systemctl restart rocketchat
+      rm -rf $ROCKETCHAT_DIR && mv $ROCKETCHAT_DIR_UPDATE $ROCKETCHAT_DIR
+      systemctl restart rocketchat
       print_update_install_failed_exit
     fi
   else
@@ -922,7 +922,7 @@ check_node_major_version() {
 do_update_node() {
   get_supported_node_version
   local currently_used_node_path=$(awk -F'[= ]' '$1 == "ExecStart" {print $2}' /lib/systemd/system/rocketchat.service)
-  [[ $($currently_used_node_path --version 2> /dev/null) == "$NODE_VERSION" ]] && return
+  [[ $($currently_used_node_path --version 2> /dev/null) == "v$NODE_VERSION" ]] && return
   do_install_node
   run sed -Ei "s@^(ExecStart)=$currently_used_node_path {1,}(.+)\$@\1=$NODE_BIN \2@" /lib/systemd/system/rocketchat.service
   check_node_major_version || print_node_not_updated_error_and_exit
@@ -1111,7 +1111,7 @@ check_arguments_backup() {
 }
 
 check_bkup_dir() {
-  run touch "$backup_dir/testfile_$sufix.txt" /dev/null 2>&1 && run rm "$backup_dir/testfile_$sufix.txt" || print_backup_dir_error_and_exit
+  touch "$backup_dir/testfile_$sufix.txt" /dev/null 2>&1 && run rm "$backup_dir/testfile_$sufix.txt" || print_backup_dir_error_and_exit
 }
 
 do_backup() {
@@ -1160,7 +1160,7 @@ do_install_node() {
   # if called just to update, node version check's been already done
   if [[ ${FUNCNAME[1]} != "do_update_node" ]]; then
     if command_exists node; then
-      if [[ $(node --version 2> /dev/null) == "$NODE_VERSION" ]]; then
+      if [[ $(node --version 2> /dev/null) == "v$NODE_VERSION" ]]; then
         NODE_BIN=$(which node)
         return
       else
@@ -1174,7 +1174,7 @@ do_install_node() {
     run n $NODE_VERSION
     NODE_BIN=$(n which $NODE_VERSION)
   else
-    command_exists nvm || { test -s /opt/nvm/nvm.sh && run source $_ || do_install_nvm; }
+    command_exists nvm || { test -s /opt/nvm/nvm.sh && source $_ || do_install_nvm; }
     run nvm i $NODE_VERSION
     NODE_BIN=$(nvm which $NODE_VERSION)
   fi
